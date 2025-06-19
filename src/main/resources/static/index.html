@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Cifras y Letras</title>
+    <style>
+        .panel { display: none; }
+        .panel.visible { display: block; }
+    </style>
+</head>
+<body>
+
+<!-- Panel Login -->
+<div id="loginPanel" class="panel visible">
+    <h2>Login</h2>
+    <input type="text" id="nameInput" placeholder="Tu nombre" />
+    <button onclick="login()">Entrar</button>
+</div>
+
+<!-- Panel Lobby -->
+<div id="lobbyPanel" class="panel">
+    <h2 id="welcome"></h2>
+    <button onclick="createRoom()">Crear Sala</button>
+    <input type="text" id="roomIdInput" placeholder="ID de sala" />
+    <button onclick="joinRoom()">Unirse a Sala</button>
+</div>
+
+<!-- Panel Sala -->
+<div id="roomPanel" class="panel">
+    <h2>Sala: <span id="roomIdDisplay"></span></h2>
+    <p>Admin: <span id="adminDisplay"></span></p>
+    <ul id="playersList"></ul>
+    <button id="startGameButton" onclick="startGame()" style="display: none;">Iniciar Partida</button>
+    <button onclick="leaveRoom()">Salir de Sala</button>
+</div>
+
+<script>
+    let user = null;
+    let socket = null;
+    let currentRoom = null;
+
+    function showPanel(id) {
+        document.querySelectorAll(".panel").forEach(p => p.classList.remove("visible"));
+        document.getElementById(id).classList.add("visible");
+    }
+
+    function login() {
+        const name = document.getElementById("nameInput").value;
+        fetch("http://localhost:8080/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({name: name})
+        })
+            .then(res => res.json())
+            .then(data => {
+                user = data;
+                document.getElementById("welcome").innerText = "Bienvenido, " + user.displayName;
+                connectSocket();
+                showPanel("lobbyPanel");
+            })
+            .catch(err => {
+                console.error("Error al iniciar sesión:", err);
+            });
+    }
+
+    function connectSocket() {
+        socket = new WebSocket("ws://localhost:8080/ws/game");
+
+        socket.onopen = () => {
+            console.log("WebSocket conectado");
+            if (currentRoom) {
+                socket.send(JSON.stringify({ type: "init", user: user.displayName, roomId: currentRoom.id }));
+            } else {
+                socket.send(JSON.stringify({ type: "init", user: user.displayName }));
+            }
+        };
+
+        socket.onmessage = (event) => {
+            console.log("Mensaje recibido:", event.data);
+            const room = JSON.parse(event.data);
+            updateRoomUI(room);
+        };
+
+        socket.onclose = () => {
+            console.log("WebSocket desconectado");
+        };
+    }
+
+    function createRoom() {
+        fetch("http://localhost:8080/api/room/create", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(user)
+        })
+            .then(res => res.json())
+            .then(room => {
+                currentRoom = room;
+                updateRoomUI(room);
+                socket.send(JSON.stringify({ type: "init", user: user.displayName, roomId: currentRoom.id }));
+                showPanel("roomPanel");
+            });
+    }
+
+    function joinRoom() {
+        const roomId = document.getElementById("roomIdInput").value;
+        fetch(`http://localhost:8080/api/room/join/${roomId}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(user)
+        })
+            .then(res => res.json())
+            .then(room => {
+                currentRoom = room;
+                updateRoomUI(room);
+                socket.send(JSON.stringify({ type: "init", user: user.displayName, roomId: currentRoom.id }));
+                showPanel("roomPanel");
+            })
+            .catch(() => alert("No se pudo unir a la sala."));
+    }
+
+    function leaveRoom() {
+        if (!currentRoom) return;
+        fetch(`http://localhost:8080/api/room/leave/${currentRoom.id}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(user)
+        }).then(() => {
+            currentRoom = null;
+            showPanel("lobbyPanel");
+        });
+    }
+
+    function updateRoomUI(room) {
+        currentRoom = room;
+        document.getElementById("roomIdDisplay").innerText = room.id;
+        document.getElementById("adminDisplay").innerText = room.owner.displayName;
+
+        const list = document.getElementById("playersList");
+        list.innerHTML = "";
+        room.players.forEach(p => {
+            const li = document.createElement("li");
+            li.innerText = `${p.displayName} (ID: ${p.id})`;
+            list.appendChild(li);
+        });
+    }
+</script>
+</body>
+</html>
