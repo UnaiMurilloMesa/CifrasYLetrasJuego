@@ -1,5 +1,6 @@
 package org.umm.cifrasyletras.domain.repository;
 
+import org.springframework.stereotype.Repository;
 import org.umm.cifrasyletras.domain.model.User;
 
 import java.util.Optional;

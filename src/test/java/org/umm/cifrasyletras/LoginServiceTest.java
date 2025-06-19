@@ -15,8 +15,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.ArgumentMatchers.anyString;
 
-@SpringBootTest
-@AutoConfigureMockMvc
 class LoginServiceTest {
 
     private UserRepository userRepository;

@@ -8,9 +8,7 @@ import org.umm.cifrasyletras.domain.repository.RoomRepository;
 import org.umm.cifrasyletras.infrastructure.socket.GameSocketHandler;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class RoomService {
@@ -36,6 +34,7 @@ public class RoomService {
         Room room = roomRepository.findById(roomId);
         if (room != null && !room.isFull()) {
             room.addPlayer(user);
+            roomRepository.save(room);
             gameSocketHandler.sendRoomUpdate(roomId);
             System.out.println(user.getDisplayName() + " joined room: " + roomId);
             return room;
