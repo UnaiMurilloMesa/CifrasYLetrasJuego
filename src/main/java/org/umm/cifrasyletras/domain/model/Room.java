@@ -16,12 +16,14 @@ public class Room {
     private User owner;
     private List<User> players;
     private boolean isPrivate;
+    private boolean isGameStarted;
 
     public Room(String id, User owner, boolean isPrivate) {
         this.id = id;
         this.owner = owner;
         this.players = new ArrayList<>(List.of(owner));
         this.isPrivate = isPrivate;
+        this.isGameStarted = false;
     }
 
     public boolean isFull() {

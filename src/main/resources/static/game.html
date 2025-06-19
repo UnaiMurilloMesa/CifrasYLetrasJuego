@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <title>Juego Letras</title>
+</head>
+<body>
+<h2>Juego de Letras</h2>
+<div id="letters"></div>
+<h3 id="timer">Tiempo: 45</h3>
+<input type="text" id="wordInput" placeholder="Tu mejor palabra" />
+<button onclick="submitWord()">Enviar</button>
+<p id="result"></p>
+
+<script>
+    const query = new URLSearchParams(window.location.search);
+    const roomId = query.get("roomId");
+    const user = query.get("user");
+
+    const alphabet = "ABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+    const letters = Array.from({length: 10}, () => alphabet[Math.floor(Math.random() * alphabet.length)]);
+    document.getElementById("letters").innerHTML = letters.join(" ");
+
+    let time = 45;
+    const timer = setInterval(() => {
+        document.getElementById("timer").innerText = "Tiempo: " + time;
+        if (--time < 0) {
+            clearInterval(timer);
+            alert("¡Tiempo terminado! Introduce tu palabra.");
+        }
+    }, 1000);
+
+    function submitWord() {
+        const word = document.getElementById("wordInput").value.trim().toUpperCase();
+        if (!word) return;
+
+        fetch("http://localhost:8080/api/round/submit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                roomId: roomId,
+                playerName: user,
+                word: word
+            })
+        })
+            .then(res => {
+                if (res.ok) {
+                    document.getElementById("result").innerText = `Palabra enviada: ${word}`;
+                } else {
+                    document.getElementById("result").innerText = "Error al enviar palabra";
+                }
+            });
+    }
+</script>
+</body>
+</html>
